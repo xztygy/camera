@@ -1,14 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>原生折线图</title>
-  <link rel="stylesheet" href="https://xztygy.github.io/LineChart/css/index.css">
+    <meta charset="UTF-8">
+    <title>html5调用摄像头</title>
 </head>
+<style>
+    body {
+        display: flex;
+        margin: 0px;
+        padding: 0px;
+    }
+
+    h1 {
+        margin: 0px;
+        padding: 20px;
+    }
+
+    .bodymain {
+        width: 100%;
+        text-align: center;
+        margin: 10px;
+        padding: 40px;
+        background-color: black;
+        color: white;
+
+    }
+    .selectCamera {
+     width: 60px;
+     height: 40px;
+    }
+    .camera {
+        margin: 5px;
+        padding: 5px;
+        width: 480px;
+        height: 640px;
+        background-color: gray;
+    }
+    button {
+        height: 40px;
+    }
+
+</style>
 
 <body>
-  <script src="https://xztygy.github.io/LineChart/js/index.js"></script>
+    <div class="bodymain">
+        <h1>html5调用摄像头demo</h1>
+        <div>
+            <select class="selectCamera" onchange="changeCamera(this)">
+                <option value="0" selected>前置</option>
+                <option value="1">后置</option>
+            </select>
+        </div>
+
+        <video id="video" class="camera" autoplay="autoplay"></video>
+        <canvas id="canvas" width="480" height="640"></canvas>
+        <!--拍照按钮-->
+        <div class="btnItem">
+            <button id="opencapture" onclick="getMedia()">开启</button>
+            <button onclick="stopStreamedVideo(video)">关闭摄像头</button>
+            <button id="capture" onclick="getImage()">拍照</button>
+        </div>
+        <!--描绘video截图-->
+    </div>
+    <script>
+
+        let video = document.getElementById("video");
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+
+        if (navigator.mediaDevices === undefined) {
+            navigator.mediaDevices = {};
+        }
+
+        if (navigator.mediaDevices.getUserMedia === undefined) {
+            navigator.mediaDevices.getUserMedia = function (constraints) {
+
+                var getUserMedia = (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) ||
+                    navigator.webkitGetUserMedia ||
+                    navigator.mozGetUserMedia ||
+                    navigator.msGetUserMedia;
+
+                if (!getUserMedia) {
+                    return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+                }
+
+                return new Promise(function (resolve, reject) {
+                    getUserMedia.call(navigator, constraints, resolve, reject);
+                });
+            }
+        }
+
+
+        function getMedia() {
+            alert('loading.....');
+            let constraints = { video: { facingMode: { exact: 'user' }, height: { ideal: 480 }, width: { ideal: 640 }, "mirror": false } };
+            loadingCamera(constraints);
+        }
+        
+        function changeCamera(local){
+            let constraints = { video: { facingMode: { exact: 'user' }, height: { ideal: 480 }, width: { ideal: 640 }, "mirror": false } };
+            if(local.value == "1"){
+                constraints = { video: { facingMode: { exact: 'environment' }, height: { ideal: 480 }, width: { ideal: 640 } } };
+            }
+            loadingCamera(constraints);
+        }
+
+        // 获取摄像头视频流，摄像机后置=facingMode: { exact: 'environment' }，前置=facingMode: { exact: 'user' }
+        function loadingCamera(constraints){
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(function (stream) {
+                        if ("srcObject" in video) {
+                            video.srcObject = stream;
+                            if(constraints.video.facingMode.exact == 'user'){
+                                video.style.transform = "scaleX(-1)";
+                            }else{
+                                video.style.transform = 'scaleX(1)';
+                            }
+                        } else {
+                            video.src = window.URL.createObjectURL(stream); // 不再支持
+                            alert('不再支持');
+                        }
+                        video.onloadedmetadata = function (e) {
+                            video.play();
+                        };
+                    })
+                    .catch(function (err) {
+                        alert("出现以下错误:" + err.name + ": " + err.message);
+                    });
+            } else {
+                alert('当前浏览器版本过低!');
+            }
+        }
+
+
+        // 停止视频流
+        function stopStreamedVideo(videoElem) {
+            const stream = videoElem.srcObject;
+            const tracks = stream.getTracks();
+
+            tracks.forEach(function (track) {
+                track.stop();
+            });
+
+            videoElem.srcObject = null;
+        }
+
+        // 获取摄像头视频帧
+        function getImage() {
+            // 获取视频帧的宽度和高度
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+
+            // 将画布的宽度和高度设置为视频帧的宽度和高度
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+
+            // 绘制画面
+            context.save();
+            context.drawImage(video, 0, 0, videoWidth, videoHeight);
+            context.restore();
+        }
+
+
+        getMedia();
+
+    </script>
+
+
+
+
 </body>
+
 </html>
